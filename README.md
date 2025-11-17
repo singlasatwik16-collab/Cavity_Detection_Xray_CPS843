@@ -71,7 +71,6 @@ HTML5
 CSS3 (Neon UI)
 JavaScript (custom logic, canvas drawing)
 LocalStorage state management
-
 Canvas sharpening + resizing
 
 📂 Folder Structure

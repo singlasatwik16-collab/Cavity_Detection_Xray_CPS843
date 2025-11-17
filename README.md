@@ -5,6 +5,12 @@ CPS843 – Computer Vision Project
 
 This project is an AI-based dental X-ray analysis system that detects:
 
+🎥 Demo Video
+
+Click below to watch the full project demo video:
+
+[**Demo Video (GitHub Release)**](https://github.com/singlasatwik16-collab/Cavity_Detection_Xray_CPS843/releases/tag/Demo_Video)
+
 🦷 Caries
 
 🦷 Deep Caries

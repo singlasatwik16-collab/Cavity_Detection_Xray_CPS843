@@ -1,45 +1,238 @@
-# TeethXrayAI
-A computer vision project for AI teeth xray analysis. This repo features a yolov8 object detection model based on the [dentex dataset](https://universe.roboflow.com/dentex/dentex-3xe7e) and a simple web interface for querying it. 
-If you dont want to selfhost it then you can use my personal deployment https://xray.cyphersec.eu/
+📌 AI-Powered Dental Cavity Detection System
+CPS843 – Computer Vision Project
 
-![Screenshot](images/img1.png)
+🧠 Overview
 
-## Content
-1. Self hosting
-2. Training
-3. Evaluation
+This project is an AI-based dental X-ray analysis system that detects:
 
-## Self Hosting
-If you dont want to use the demo deployment and deploy the webUI yourself you have 2 options. You can either download the pretrained yolov8 model that i trained or you can train it yourself.
-Download link: [dental model](https://xray.cyphersec.eu/download)
- After downloading it/training it just pop it into the root of this repo and name it "best.pt". After that run 
-```
-python3 -m pip install -r requirements.txt
-```
-followed by
-```
-python3 object_detector.py
-```
-This should make the UI available on http://127.0.0.1:8080
-## Training Proccess
-For training i used the YOLO package from the python ultralytics libary. Luckily this makes the training fairly easy.
-Step 1: Head over to roboflow and create an account. Once youre logged in go to https://universe.roboflow.com/dentex/dentex-3xe7e/dataset/2 and choose download dataset. Instead of downloading it directly i would recommend to get the download code in python and running that as the dataset has to be in ~/datasets/dentex-2/ in order for our training tool to find it. After the dir is in that location run 
+🦷 Caries
 
-```
-pip3 install ultralytics roboflow && yolo train data=data.yaml model=yolov8n.pt epochs=50 imgsz=640 cache=True
-```
-The model will be saved in ~/datasets/dentex-2/runs/detect/train/weights/best.pt.
-## Evaluation
-For the hyperparameters that i suggested my metrics are 
-```
-Ultralytics YOLOv8.0.227 🚀 Python-3.10.12 torch-2.1.0+cu121 CUDA:0 (Tesla T4, 15102MiB)
-Model summary (fused): 168 layers, 3006428 parameters, 0 gradients, 8.1 GFLOPs
-                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 2/2 [00:00<00:00,  4.30it/s]
-                   all         40        218        0.4      0.533      0.458      0.283
-                Caries         40        142      0.297      0.556      0.336      0.228
-           Deep Caries         40         40      0.481      0.475      0.486      0.305
-              Impacted         40         26      0.633          1      0.878      0.509
-     Periapical Lesion         40         10      0.191        0.1       0.13     0.0902
-Speed: 0.1ms preprocess, 1.9ms inference, 0.0ms loss, 2.4ms postprocess per image
-```
-look at them and contemplate wether you would get better results training it yourself.
+🦷 Deep Caries
+
+It uses a Roboflow YOLOv8 model (Dentex v2) and a fully custom-built Flask backend + HTML/JS front-end interface.
+The system provides:
+
+✔ Real-time cavity detection
+✔ Bounding-box visualization
+✔ Severity scoring (High / Medium / Low)
+✔ A dedicated Cavity Viewer with HD sharpening
+✔ A full-screen, futuristic UI with video background
+✔ Local persistence to view cavities individually
+
+This project demonstrates computer vision, image processing, UI/UX, backend integration, and applied machine learning.
+
+🚀 Features
+🔍 1. AI Detection
+
+Uses Roboflow Dentex v2 model
+
+Detects only:
+
+caries
+
+deep caries
+
+Confidence threshold-based severity classification
+
+JSON output for bounding boxes, confidence, labels
+
+🖥 2. Beautiful Web Interface
+
+Video background
+
+Neon-themed medical UI
+
+Animated transitions
+
+Clear upload → analyze → results workflow
+
+🖼 3. Results Summary
+
+Total cavities
+
+Count by severity
+
+Average confidence
+
+Highest confidence
+
+Risk level (Low / Moderate / High)
+
+🔎 4. Cavity Viewer (HD)
+
+Each cavity can be viewed individually:
+
+High-resolution crop
+
+Automatic upscaling
+
+Sharpening using convolution kernel
+
+Improved visibility for analysis
+
+Navigation between cavities
+
+Bounding box overlay
+
+💾 5. Local Storage Persistence
+
+When navigating between pages:
+
+Image
+
+Detected cavities
+
+Selected cavity
+
+are preserved until user resets.
+
+🧰 Tech Stack
+Backend
+
+Python
+
+Flask
+
+Roboflow Inference API
+
+Pillow
+
+Frontend
+
+HTML5
+
+CSS3 (Neon UI)
+
+JavaScript (custom logic, canvas drawing)
+
+LocalStorage state management
+
+Canvas sharpening + resizing
+
+📂 Folder Structure
+Cavity_Detection_Xray_CPS843/
+│
+├── object_detector.py                  # Main Flask backend
+├── templates/
+│   ├── index.html          # Upload + analysis UI
+│   ├── cavities.html       # Cavity list page
+│   ├── cavity_view.html    # HD zoom viewer
+│
+├── static/
+│   ├── images/logo.png
+│   ├── videos/background.mp4
+│   ├── css, js (embedded)
+│
+└── best.pt
+└── dental images
+└── README.md
+
+🧪 How Detection Works
+1️⃣ User uploads dental X-ray
+2️⃣ Flask sends image → Roboflow API
+ROBOFLOW_URL = f"https://detect.roboflow.com/{PROJECT_ID}/{MODEL_VERSION}?api_key={ROBOFLOW_API_KEY}"
+
+3️⃣ Model returns:
+
+Bounding boxes
+
+Class (caries / deep caries)
+
+Confidence
+
+4️⃣ We apply severity rules:
+if prob >= 0.75: severity = "High"
+elif prob >= 0.50: severity = "Medium"
+else: severity = "Low"
+
+5️⃣ Frontend draws boxes + labels on canvas
+6️⃣ Cavity Viewer extracts and sharpens the crop
+
+Using:
+
+3× upscaling
+
+Sharpening convolution kernel
+
+Contrast boost
+
+🛠 Local Setup
+1. Clone Repo
+git clone https://github.com/singlasatwik16-collab/Cavity_Detection_Xray_CPS843.git
+cd Cavity_Detection_Xray_CPS843
+
+2. Create Virtual Environment
+python3 -m venv venv
+source venv/bin/activate
+
+3. Install Dependencies
+pip install -r requirements.txt
+
+4. Run App
+python app.py
+
+
+App runs at:
+
+👉 http://127.0.0.1:5001/
+
+🧪 Example Output (JSON)
+[
+  {
+    "bbox": [670, 273, 770, 365],
+    "color": "#FFCC00",
+    "label": "Medium Deep Caries (69%)",
+    "probability": 0.69,
+    "severity": "Medium"
+  },
+  {
+    "bbox": [605, 299, 727, 417],
+    "color": "#34C759",
+    "label": "Low Deep Caries (42%)",
+    "probability": 0.42,
+    "severity": "Low"
+  }
+]
+
+📜 Academic Note
+
+This project was developed as part of CPS843 – Introduction to Computer Vision at TMU.
+It demonstrates:
+
+Image pre-processing
+
+Bounding box visualization
+
+AI model integration
+
+Convolution-based sharpening
+
+Web UI development
+📚 References
+
+This project builds upon publicly available research, datasets, and tools that contributed to the development of the cavity-detection system.
+
+1. Dentex Dataset (Roboflow Universe)
+
+The AI model used for detecting caries and deep caries is based on the publicly accessible Dentex dataset:
+👉 https://universe.roboflow.com/dentex/dentex-3xe7e
+
+This dataset provides annotated dental X-ray images used for training and evaluation of object detection models on dental cavities.
+
+2. DentalXrayAI – YOLOv8 Training Reference
+
+The cavity detection workflow, training pipeline structure, preprocessing ideas, and model integration approaches were partially inspired by:
+👉 https://github.com/NoahOksuz/DentalXrayAI
+
+This repository explores YOLO-based cavity detection on dental X-rays and contributed to architectural inspiration for this project.
+
+3. Roboflow Inference API
+
+The real-time detection in this project uses the Roboflow Hosted Inference API:
+👉 https://roboflow.com
+
+This API provides YOLOv8 inference endpoints that deliver bounding boxes, class predictions, and confidence scores.
+
+4. TMU – CPS843 Course Material
+
+General computer vision concepts used here (image processing, canvas rendering, convolution sharpening) are based on the topics and principles taught in CPS843 at Toronto Metropolitan University.

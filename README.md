@@ -61,6 +61,7 @@ Navigation between cavities
 Bounding box overlay
 
 🧰 Tech Stack
+
 Backend
 Python
 Flask
@@ -74,6 +75,7 @@ LocalStorage state management
 Canvas sharpening + resizing
 
 📂 Folder Structure
+
 Cavity_Detection_Xray_CPS843/
 │
 ├── object_detector.py                  # Main Flask backend

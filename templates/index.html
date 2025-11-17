@@ -1,108 +1,451 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>YOLOv8 Dental Object Detection</title>
-    <style>
-      body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          background-color: #3e6b8a;
-          color: #333;
-          text-align: center;
-          padding: 40px 0;
-      }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Powered Cavity Detection</title>
 
-      #logo {
-          display: block;
-          margin: 0 auto 20px;
-          max-width: 200px; /* Adjust this value based on your logo size */
-      }
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
 
-      #uploadInput {
-          font-size: 16px;
-          padding: 10px 20px;
-          background-color: #2c3e50;
-          color: white;
-          border: none;
-          border-radius: 5px;
-          cursor: pointer;
-          transition: background-color 0.3s ease;
-      }
+<style>
+:root {
+    --primary: #4bf0f0;
+    --bg-card: rgba(20, 30, 40, 0.88);
+    --text-light: #f1f5f9;
+    --text-faint: #94a3b8;
+}
 
-      #uploadInput:hover {
-          background-color: #34495e;
-      }
+/* RESET */
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-      canvas {
-          display: block;
-          border: 2px solid #2c3e50;
-          margin: 30px auto;
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      }
-    </style>
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-light);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* BACKGROUND VIDEO */
+.bg-video {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.25);
+    z-index: -2;
+}
+.bg-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: -1;
+}
+
+/* LOGO */
+.top-logo {
+    width: 220px;
+    margin: 25px auto 10px;
+    display: block;
+    filter: drop-shadow(0 0 12px rgba(75,240,240,0.7));
+}
+
+/* CONTAINER */
+.container {
+    width: 100%;
+    max-width: 650px;
+    margin: 20px auto 80px;
+    padding: 20px;
+}
+
+/* CARD */
+.card {
+    padding: 35px;
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid rgba(75,240,240,0.25);
+    backdrop-filter: blur(8px);
+}
+
+/* HEADINGS */
+h1 {
+    text-align:center;
+    font-size:32px;
+    color:var(--primary);
+    margin-bottom:10px;
+}
+.subtitle {
+    text-align:center;
+    color:var(--text-faint);
+    margin-bottom:35px;
+}
+
+/* UPLOAD BOX */
+.upload-box {
+    text-align:center;
+    border: 2px dashed rgba(75,240,240,0.4);
+    padding: 60px 20px;
+    border-radius: 14px;
+    transition: .3s;
+    cursor:pointer;
+}
+.upload-box:hover {
+    border-color: var(--primary);
+    background: rgba(75,240,240,0.15);
+}
+.upload-icon { width: 50px; height: 50px; color: var(--primary); margin-bottom:20px; }
+
+/* BUTTONS */
+.button-group {
+    display:flex;
+    justify-content:center;
+    gap: 10px;
+    margin-top:20px;
+}
+.button-primary {
+    background: var(--primary);
+    color:#000;
+    padding:14px 26px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:700;
+    border:none;
+}
+.button-secondary {
+    background: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+}
+
+/* PERFECT CANVAS */
+#canvas-wrapper {
+    width: 100%;
+    height: 450px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    margin: 20px 0;
+    border: 2px solid rgba(75,240,240,0.4);
+    background: black;
+    overflow: hidden;
+    position: relative;
+}
+
+#resultCanvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* LOADER */
+.loader {
+    width:20px;
+    height:20px;
+    border:3px solid rgba(255,255,255,0.3);
+    border-top-color:var(--primary);
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 </head>
+
 <body>
-    <img id="logo" src="https://i.ibb.co/60r7bkT/DALL-E-2023-12-12-01-42-59-A-logo-for-X-Ray-Deep-Learning-Analysis-focused-on-dental-imagery-The-log.png" alt="X-Ray Deep Learning Analysis Logo"/>
-    <input id="uploadInput" type="file"/>
-    <canvas></canvas>
-    <script>
-      /**
-       * "Upload" button onClick handler: uploads selected image file
-       * to backend, receives array of detected objects
-       * and draws them on top of image
-       */
-       const input = document.getElementById("uploadInput");
-       input.addEventListener("change",async(event) => {
-           const data = new FormData();
-           data.append("image_file",event.target.files[0],"image_file");
-           const response = await fetch("/detect",{
-               method:"post",
-               body:data
-           });
-           const boxes = await response.json();
-           draw_image_and_boxes(event.target.files[0],boxes);
-       })
 
-      /**
-       * Function draws the image from provided file
-       * and bounding boxes of detected objects on
-       * top of the image
-       * @param file Uploaded file object
-       * @param boxes Array of bounding boxes in format [[x1,y1,x2,y2,object_type,probability],...]
-       */
-       function draw_image_and_boxes(file, boxes) {
-        const img = new Image();
-        img.src = URL.createObjectURL(file);
-        img.onload = () => {
-            const canvas = document.querySelector("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0);
-            ctx.strokeStyle = "#00FF00";
-            ctx.lineWidth = 3;
-            ctx.font = "18px serif";
-            boxes.forEach(([x1, y1, x2, y2, label, confidence]) => {
-                // Draw rectangle around the object
-                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+<video autoplay muted loop playsinline class="bg-video">
+    <source src="/static/videos/background.mp4" type="video/mp4">
+</video>
+<div class="bg-overlay"></div>
 
-                // Prepare text to display (label and confidence)
-                const text = `${label} (${confidence})`;
+<img src="/static/images/logo.png" class="top-logo" alt="XRAY Logo">
 
-                // Measure text width for background rectangle
-                const textWidth = ctx.measureText(text).width;
+<div class="container">
+    <div class="card">
+        <h1>AI-Powered Cavity Detection</h1>
+        <p class="subtitle">Upload your dental X-ray and our AI will analyze it for signs of decay.</p>
 
-                // Draw background rectangle for text
-                ctx.fillStyle = "#00FF00";
-                ctx.fillRect(x1, y1 - 25, textWidth + 10, 25);
+        <div id="app-content"></div>
+    </div>
+</div>
 
-                // Draw text (label and confidence)
-                ctx.fillStyle = "#000000";
-                ctx.fillText(text, x1, y1 - 7);
-            });
-        }
+<script>
+let selectedFile = null;
+let selectedImageURL = "";
+let analysisComplete = false;
+let isAnalyzing = false;
+let boxesData = [];
+
+const appContent = document.getElementById("app-content");
+const fileInput = document.createElement("input");
+fileInput.type = "file";
+fileInput.accept = "image/*";
+fileInput.style.display = "none";
+
+window.onload = () => {
+    const path = window.location.pathname;
+
+
+    if (path === "/" || path === "/index.html") {
+        localStorage.removeItem("has_uploaded");
     }
 
-    </script>
+    const savedImage = localStorage.getItem("uploaded_image");
+    const savedResults = localStorage.getItem("cavity_results");
+    const alreadyAnalyzed = localStorage.getItem("analysis_complete");
+    const cameFromCavityPage = localStorage.getItem("has_uploaded");
+
+    if (!cameFromCavityPage && (path === "/" || path === "/index.html")) {
+        resetApp(); 
+        render();
+        return;
+    }
+
+    if (savedImage && savedResults && alreadyAnalyzed === "true") {
+        selectedImageURL = savedImage;
+        boxesData = JSON.parse(savedResults);
+        analysisComplete = true;
+        selectedFile = "restored";
+    }
+
+    render();
+};
+
+
+
+function render() {
+    if (isAnalyzing) return renderAnalyzing();
+    if (!selectedFile) return renderUpload();
+    if (!analysisComplete) return renderPreview();
+    return renderResults();
+}
+
+/* UPLOAD SCREEN */
+function renderUpload() {
+    appContent.innerHTML = `
+        <div class="upload-box" id="dropzone">
+            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-width="2" d="M12 16V4m0 0l4 4m-4-4L8 8m-4 8v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+            </svg>
+            <h2 style="font-size:22px;margin-bottom:8px;">Upload Dental X-ray</h2>
+            <p style="color:var(--text-faint);margin-bottom:22px;">Click the button below to upload.</p>
+
+            <button class="button-primary" id="selectFileBtn">Choose File</button>
+        </div>
+    `;
+
+    document.getElementById("selectFileBtn").onclick = () => fileInput.click();
+
+   
+    fileInput.onchange = fileSelected;
+}
+
+/* PREVIEW */
+function renderPreview() {
+    appContent.innerHTML = `
+        <div id="canvas-wrapper"><canvas id="resultCanvas"></canvas></div>
+        <div class="button-group">
+            <button class="button-primary" onclick="analyze()">Analyze X-ray</button>
+            <button class="button-primary button-secondary" onclick="resetApp()">Upload New</button>
+        </div>
+    `;
+    drawCanvas(selectedImageURL, []);
+}
+
+/* ANALYZING */
+function renderAnalyzing() {
+    appContent.innerHTML = `
+        <div id="canvas-wrapper"><canvas id="resultCanvas"></canvas></div>
+        <div class="button-group">
+            <button class="button-primary" disabled><span class="loader"></span> Analyzing...</button>
+        </div>
+    `;
+    drawCanvas(selectedImageURL, []);
+}
+
+/* RESULTS */
+function renderResults() {
+    const total = boxesData.length;
+    const high = boxesData.filter(b => b.probability >= 0.75).length;
+    const medium = boxesData.filter(b => b.probability >= 0.50 && b.probability < 0.75).length;
+    const low = boxesData.filter(b => b.probability < 0.50).length;
+
+    const avgConf = ((boxesData.reduce((s, b) => s + b.probability, 0) / total) * 100).toFixed(1);
+    const maxConf = (Math.max(...boxesData.map(b => b.probability)) * 100).toFixed(1);
+
+    let risk = "Low", color = "#34C759";
+    if (high >= 2) { risk = "High"; color = "#FF3B30"; }
+    else if (medium >= 2) { risk = "Moderate"; color = "#FFCC00"; }
+
+    appContent.innerHTML = `
+        <div id="canvas-wrapper"><canvas id="resultCanvas"></canvas></div>
+
+        <div style="padding:15px;margin-top:20px;background:rgba(0,0,0,0.3);border-radius:10px;">
+            <h3 style="color:var(--primary);margin-bottom:10px;">Analysis Summary</h3>
+            <p><strong>Total Cavities:</strong> ${total}</p>
+            <p><strong>High Severity:</strong> <span style="color:#FF3B30">${high}</span></p>
+            <p><strong>Medium Severity:</strong> <span style="color:#FFCC00">${medium}</span></p>
+            <p><strong>Low Severity:</strong> <span style="color:#34C759">${low}</span></p>
+            <p><strong>Avg Confidence:</strong> ${avgConf}%</p>
+            <p><strong>Top Confidence:</strong> ${maxConf}%</p>
+            <p><strong>Risk Level:</strong> <span style="color:${color};font-weight:bold;">${risk}</span></p>
+        </div>
+
+        <div class="button-group">
+            <button class="button-primary" onclick="resetApp()">Upload Another</button>
+
+            <button class="button-primary button-secondary" 
+            onclick="goToCavityList()"
+            style="background:#1e7a7a; color:white;">
+        View Individual Cavities
+    </button>
+        </div>
+
+    `;
+
+    drawCanvas(selectedImageURL, boxesData);
+}
+
+
+function drawCanvas(url, boxes) {
+    const canvas = document.getElementById("resultCanvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.src = url;
+
+    img.onload = () => {
+        const wrapper = document.getElementById("canvas-wrapper");
+
+        const W = wrapper.clientWidth;
+        const H = wrapper.clientHeight;
+        const scale = Math.min(W / img.width, H / img.height);
+
+        const drawW = img.width * scale;
+        const drawH = img.height * scale;
+
+        canvas.width = drawW;
+        canvas.height = drawH;
+
+        ctx.clearRect(0, 0, drawW, drawH);
+        ctx.drawImage(img, 0, 0, drawW, drawH);
+
+        let placedLabels = [];
+
+        boxes.forEach(box => {
+            const [x1, y1, x2, y2] = box.bbox;
+
+            const sx1 = x1 * scale;
+            const sy1 = y1 * scale;
+            const sx2 = x2 * scale;
+            const sy2 = y2 * scale;
+
+            ctx.strokeStyle = box.color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
+
+            ctx.font = "bold 14px Inter";
+            const label = box.label;
+            const textW = ctx.measureText(label).width + 10;
+            const textH = 20;
+
+            let lx = sx1;
+            let ly = sy1 - textH - 4;
+
+            if (ly < 0) ly = sy1 + 4;
+
+            let tries = 0;
+            while (tries < 20) {
+                const overlap = placedLabels.some(L => {
+                    return (
+                        lx < L.x + L.w &&
+                        lx + textW > L.x &&
+                        ly < L.y + L.h &&
+                        ly + textH > L.y
+                    );
+                });
+                if (!overlap) break;
+                ly += textH + 4;
+                tries++;
+            }
+
+            placedLabels.push({ x: lx, y: ly, w: textW, h: textH });
+
+            ctx.fillStyle = "#000000cc";
+            ctx.fillRect(lx, ly, textW, textH);
+
+            ctx.fillStyle = "#fff";
+            ctx.fillText(label, lx + 5, ly + 15);
+        });
+    };
+}
+
+function fileSelected(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    selectedFile = file;
+    analysisComplete = false;
+
+    const reader = new FileReader();
+    reader.onload = ev => {
+        selectedImageURL = ev.target.result;
+        render();
+    };
+    reader.readAsDataURL(file);
+}
+
+async function analyze() {
+    isAnalyzing = true;
+    render();
+
+    const form = new FormData();
+    form.append("image_file", selectedFile);
+
+    try {
+        const res = await fetch("/detect", { method:"POST", body:form });
+        boxesData = await res.json();
+        //Save results persistently
+localStorage.setItem("uploaded_image", selectedImageURL);
+localStorage.setItem("cavity_results", JSON.stringify(boxesData));
+localStorage.setItem("analysis_complete", "true");
+localStorage.setItem("has_uploaded", "true");
+
+    } catch {
+        alert("Backend error.");
+        boxesData = [];
+    }
+
+    isAnalyzing = false;
+    analysisComplete = true;
+    render();
+}
+
+function resetApp() {
+    selectedFile = null;
+    analysisComplete = false;
+    boxesData = [];
+    selectedImageURL = "";
+
+    localStorage.removeItem("uploaded_image");
+    localStorage.removeItem("cavity_results");
+    localStorage.removeItem("analysis_complete");
+    localStorage.removeItem("has_uploaded");
+
+    render();
+}
+
+
+function goToCavityList() {
+    // Save detection results in localStorage
+    localStorage.setItem("cavity_results", JSON.stringify(boxesData));
+    localStorage.setItem("uploaded_image", selectedImageURL);
+
+    // Navigate to new page
+    window.location.href = "/cavities";
+}
+
+</script>
+
 </body>
 </html>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cavity Viewer</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --primary: #4bf0f0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: "Inter", sans-serif;
+    color: white;
+    overflow-x: hidden;
+}
+
+.bg-video {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.25);
+    z-index: -2;
+}
+.bg-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: -1;
+}
+
+.top-logo {
+    width: 220px;
+    display: block;
+    margin: 25px auto;
+    filter: drop-shadow(0 0 15px rgba(75,240,240,0.8));
+}
+
+.container {
+    max-width: 900px;
+    margin: 30px auto 60px;
+    padding: 20px;
+}
+
+.card {
+    background: rgba(20, 30, 40, 0.88);
+    padding: 30px;
+    border-radius: 16px;
+    border: 1px solid rgba(75,240,240,0.25);
+    backdrop-filter: blur(6px);
+}
+
+.viewer-grid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 25px;
+}
+
+#mainCanvasWrapper {
+    width: 100%;
+    height: 500px;
+    background: black;
+    border-radius: 12px;
+    border: 2px solid rgba(75,240,240,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#mainCanvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+#cropCanvas {
+    width: 100%;
+    border-radius: 12px;
+    border: 2px solid var(--primary);
+    background: #000;
+    display: block;
+}
+
+button {
+    margin-top: 20px;
+    padding: 12px 25px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #000;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+}
+button:hover { opacity: 0.85; }
+
+.info-box {
+    padding: 15px;
+    background: rgba(0,0,0,0.35);
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<video autoplay muted loop playsinline class="bg-video">
+    <source src="/static/videos/background.mp4" type="video/mp4">
+</video>
+<div class="bg-overlay"></div>
+
+<img src="/static/images/logo.png" class="top-logo">
+
+<div class="container">
+    <div class="card">
+
+        <h2 style="text-align:center; color:var(--primary); margin-bottom:20px;">
+            Cavity Detail Viewer
+        </h2>
+
+        <div class="viewer-grid">
+
+            <div id="mainCanvasWrapper">
+                <canvas id="mainCanvas"></canvas>
+            </div>
+
+            <div>
+                <div class="info-box" id="infoBox"></div>
+
+                <h3 style="margin-bottom:10px; color:var(--primary);">Zoomed Cavity (HD)</h3>
+                <canvas id="cropCanvas" width="512" height="512"></canvas>
+
+                <button onclick="goBack()">← Back</button>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+let cavities = JSON.parse(localStorage.getItem("cavity_results"));
+let originalImage = localStorage.getItem("uploaded_image");
+let index = parseInt(localStorage.getItem("selected_cavity"));
+
+const mainCanvas = document.getElementById("mainCanvas");
+const cropCanvas = document.getElementById("cropCanvas");
+const infoBox = document.getElementById("infoBox");
+
+function goBack() { window.location.href = "/cavities"; }
+
+function nextCavity() {
+    if (index < cavities.length - 1) { index++; updateViewer(); }
+}
+
+function previousCavity() {
+    if (index > 0) { index--; updateViewer(); }
+}
+
+function updateViewer() {
+    const cavity = cavities[index];
+
+    infoBox.innerHTML = `
+        <h3 style="color:#4bf0f0;">${cavity.label}</h3>
+        <p><strong>Confidence:</strong> ${(cavity.probability * 100).toFixed(2)}%</p>
+        <p><strong>Severity:</strong> ${cavity.severity}</p>
+        <p><strong>Bounding Box:</strong> [${cavity.bbox.join(", ")}]</p>
+        <p style="margin-top:10px;"><strong>Cavity:</strong> ${index+1} of ${cavities.length}</p>
+
+        <div style="margin-top:12px;">
+            <button onclick="previousCavity()" 
+                style="margin-right:10px; ${index===0 ? 'opacity:0.4;cursor:not-allowed;' : ''}">
+                ◀ Previous
+            </button>
+
+            <button onclick="nextCavity()" 
+                style="${index===cavities.length-1 ? 'opacity:0.4;cursor:not-allowed;' : ''}">
+                Next ▶
+            </button>
+        </div>
+    `;
+
+    drawMainCanvas(cavity);
+    drawHighResCrop(cavity);
+}
+
+function drawMainCanvas(cavity) {
+    const img = new Image();
+    img.src = originalImage;
+
+    img.onload = () => {
+        const ctx = mainCanvas.getContext("2d");
+
+        const W = mainCanvas.parentElement.clientWidth;
+        const H = mainCanvas.parentElement.clientHeight;
+
+        const scale = Math.min(W / img.width, H / img.height);
+
+        const drawW = img.width * scale;
+        const drawH = img.height * scale;
+
+        mainCanvas.width = drawW;
+        mainCanvas.height = drawH;
+
+        ctx.clearRect(0, 0, drawW, drawH);
+        ctx.drawImage(img, 0, 0, drawW, drawH);
+
+        const [x1, y1, x2, y2] = cavity.bbox;
+
+        ctx.strokeStyle = cavity.color || "#4bf0f0";
+        ctx.lineWidth = 3;
+
+        ctx.strokeRect(x1 * scale, y1 * scale, (x2 - x1) * scale, (y2 - y1) * scale);
+
+        ctx.font = "bold 16px Inter";
+        const labelW = ctx.measureText(cavity.label).width + 10;
+
+        ctx.fillStyle = "#000000cc";
+        ctx.fillRect(x1 * scale, y1 * scale - 22, labelW, 22);
+
+        ctx.fillStyle = "white";
+        ctx.fillText(cavity.label, x1 * scale + 5, y1 * scale - 6);
+    };
+}
+
+
+function drawHighResCrop(cavity) {
+    const img = new Image();
+    img.src = originalImage;
+
+    img.onload = () => {
+        const cropCtx = cropCanvas.getContext("2d");
+        cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+
+       
+        let [x1, y1, x2, y2] = cavity.bbox;
+        let bw = x2 - x1;
+        let bh = y2 - y1;
+
+      
+        const PAD = 0.15; 
+        let padW = bw * PAD;
+        let padH = bh * PAD;
+
+        x1 = Math.max(0, x1 - padW);
+        y1 = Math.max(0, y1 - padH);
+        x2 = Math.min(img.width,  x2 + padW);
+        y2 = Math.min(img.height, y2 + padH);
+
+        bw = x2 - x1;
+        bh = y2 - y1;
+
+        // --- 3. Extract that region into a temp canvas ---
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = bw;
+        tempCanvas.height = bh;
+        const tempCtx = tempCanvas.getContext("2d");
+
+        tempCtx.drawImage(
+            img,
+            x1, y1, bw, bh,
+            0, 0, bw, bh
+        );
+
+        const workCanvas = document.createElement("canvas");
+        workCanvas.width = cropCanvas.width;
+        workCanvas.height = cropCanvas.height;
+        const workCtx = workCanvas.getContext("2d");
+
+        workCtx.imageSmoothingEnabled = true;
+        workCtx.imageSmoothingQuality = "high";
+
+        const scale = Math.min(
+            workCanvas.width / bw,
+            workCanvas.height / bh
+        );
+
+        const drawW = bw * scale;
+        const drawH = bh * scale;
+        const offsetX = (workCanvas.width - drawW) / 2;
+        const offsetY = (workCanvas.height - drawH) / 2;
+
+        workCtx.clearRect(0, 0, workCanvas.width, workCanvas.height);
+        workCtx.drawImage(
+            tempCanvas,
+            0, 0, bw, bh,
+            offsetX, offsetY, drawW, drawH
+        );
+
+        let imageData = workCtx.getImageData(
+            0, 0,
+            workCanvas.width, workCanvas.height
+        );
+        let data = imageData.data;
+
+        const gamma = 1.08; // 1.0 = no change, >1 = darker highlights
+        for (let i = 0; i < data.length; i += 4) {
+            for (let c = 0; c < 3; c++) { // R,G,B
+                const v = data[i + c] / 255;
+                const vv = Math.pow(v, gamma);
+                data[i + c] = Math.max(0, Math.min(255, vv * 255));
+            }
+        }
+
+      
+        const softSharpenKernel = [
+             0,   -0.20,   0,
+            -0.20,  1.80, -0.20,
+             0,   -0.20,   0
+        ];
+
+        applyConvolution(imageData, softSharpenKernel);
+        workCtx.putImageData(imageData, 0, 0);
+
+        // --- 6. Draw final result on visible cropCanvas ---
+        cropCtx.imageSmoothingEnabled = true;
+        cropCtx.imageSmoothingQuality = "high";
+
+        cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+        cropCtx.drawImage(workCanvas, 0, 0);
+    };
+}
+
+function applyConvolution(imageData, kernel) {
+    const side = Math.round(Math.sqrt(kernel.length));
+    const halfSide = Math.floor(side / 2);
+
+    const src = imageData.data;
+    const sw = imageData.width;
+    const sh = imageData.height;
+
+    const output = new Uint8ClampedArray(src.length);
+
+    for (let y = 0; y < sh; y++) {
+        for (let x = 0; x < sw; x++) {
+            let r = 0, g = 0, b = 0;
+
+            for (let ky = 0; ky < side; ky++) {
+                for (let kx = 0; kx < side; kx++) {
+                    const scy = Math.min(sh - 1, Math.max(0, y + ky - halfSide));
+                    const scx = Math.min(sw - 1, Math.max(0, x + kx - halfSide));
+
+                    const srcPos = (scy * sw + scx) * 4;
+                    const val = kernel[ky * side + kx];
+
+                    r += src[srcPos]     * val;
+                    g += src[srcPos + 1] * val;
+                    b += src[srcPos + 2] * val;
+                }
+            }
+
+            const dstPos = (y * sw + x) * 4;
+            output[dstPos]     = Math.min(255, Math.max(0, r));
+            output[dstPos + 1] = Math.min(255, Math.max(0, g));
+            output[dstPos + 2] = Math.min(255, Math.max(0, b));
+            output[dstPos + 3] = 255;
+        }
+    }
+
+    imageData.data.set(output);
+}
+
+updateViewer();
+</script>
+
+</body>
+</html>

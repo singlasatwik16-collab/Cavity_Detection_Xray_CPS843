@@ -1,60 +1,108 @@
-from ultralytics import YOLO
-from flask import request, Flask, jsonify
-from waitress import serve
+from flask import Flask, request, jsonify
 from PIL import Image
+import requests
+import io
+import base64
+import os
 
 app = Flask(__name__)
 
+# ----------------------
+# CONFIGURATION
+# ----------------------
+ROBOFLOW_API_KEY = "GX7lwRJk06bwvEEqxXTM" 
+PROJECT_ID = "dentex-3xe7e"
+MODEL_VERSION = "2"
+
+ROBOFLOW_URL = f"https://detect.roboflow.com/{PROJECT_ID}/{MODEL_VERSION}?api_key={ROBOFLOW_API_KEY}"
+
+ALLOWED_CLASSES = ["caries", "deep caries"] 
+
 @app.route("/")
 def root():
-    """
-    Site main page handler function.
-    :return: Content of index.html file
-    """
-    with open("templates/index.html") as file:
-        return file.read()
+    return open("templates/index.html").read()
 
+@app.route("/cavities")
+def cavities_page():
+    return open("templates/cavities.html").read()
+
+@app.route("/cavity-view")
+def cavity_view():
+    return open("templates/cavity_view.html").read()
 
 @app.route("/detect", methods=["POST"])
 def detect():
-    """
-        Handler of /detect POST endpoint
-        Receives uploaded file with a name "image_file", passes it
-        through YOLOv8 object detection network and returns and array
-        of bounding boxes.
-        :return: a JSON array of objects bounding boxes in format [[x1,y1,x2,y2,object_type,probability],..]
-    """
-    buf = request.files["image_file"]
-    boxes = detect_objects_on_image(buf.stream)
-    return jsonify(boxes)
+    file = request.files["image_file"]
+    return jsonify(run_inference(file))
 
+def run_inference(file):
+    img = Image.open(file.stream).convert("RGB")
 
-def detect_objects_on_image(buf):
-    """
-    Function receives an image,
-    passes it through YOLOv8 neural network
-    and returns an array of detected objects
-    and their bounding boxes
-    :param buf: Input image file stream
-    :return: Array of bounding boxes in format [[x1,y1,x2,y2,object_type,probability],..]
-    """
-    model = YOLO("best.pt")
-    results = model.predict(Image.open(buf))
-    result = results[0]
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    jpeg_bytes = buf.getvalue()
+
+    # Send to Roboflow API
+    response = requests.post(
+        ROBOFLOW_URL,
+        files={"file": ("image.jpg", jpeg_bytes, "image/jpeg")},
+    )
+
+    result = response.json()
+    print("\n\n RAW ROBOFLOW RESPONSE")
+    print(result)
+    print("=================================\n\n")
+
     output = []
-    for box in result.boxes:
-        x1, y1, x2, y2 = [
-            round(x) for x in box.xyxy[0].tolist()
-        ]
-        class_id = box.cls[0].item()
-        prob = round(box.conf[0].item(), 2)
-        prob_percentage = f"{prob * 100:.2f}%"
-        output.append([
-            x1, y1, x2, y2, result.names[class_id], prob_percentage
-        ])
 
+    if "predictions" not in result:
+        return output
+
+    for pred in result["predictions"]:
+        class_name = pred["class"].lower()
+
+        # Filter only caries + deep caries
+        if class_name not in ALLOWED_CLASSES:
+            continue
+
+        x = pred["x"]
+        y = pred["y"]
+        w = pred["width"]
+        h = pred["height"]
+
+        x1 = int(x - w / 2)
+        y1 = int(y - h / 2)
+        x2 = int(x + w / 2)
+        y2 = int(y + h / 2)
+
+        prob = pred["confidence"]
+
+        # -------------------------
+        # Severity Logic
+        # -------------------------
+        if prob >= 0.75:
+            severity = "High"
+            color = "#FF3B30"  # red
+        elif prob >= 0.50:
+            severity = "Medium"
+            color = "#FFCC00"  # yellow
+        else:
+            severity = "Low"
+            color = "#34C759"  # green
+
+        output.append({
+            "bbox": [x1, y1, x2, y2],
+            "severity": severity,
+            "label": f"{severity} {class_name.title()} ({prob*100:.0f}%)",
+            "probability": round(prob, 2),
+            "color": color
+        })
 
     return output
 
 
-serve(app, host='0.0.0.0', port=8080)
+# ----------------------
+# RUN APP
+# ----------------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5001, debug=True)

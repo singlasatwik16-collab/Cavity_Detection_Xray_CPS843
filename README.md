@@ -169,7 +169,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 4. Run App
-python app.py
+python object_detector.py
 
 
 App runs at:

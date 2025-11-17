@@ -1,18 +1,15 @@
 📌 AI-Powered Dental Cavity Detection System
 CPS843 – Computer Vision Project
 
-🧠 Overview
-
-This project is an AI-based dental X-ray analysis system that detects:
-
 🎥 Demo Video
 
 Click below to watch the full project demo video:
-
 [**Demo Video (GitHub Release)**](https://github.com/singlasatwik16-collab/Cavity_Detection_Xray_CPS843/releases/tag/Demo_Video)
 
-🦷 Caries
+🧠 Overview
 
+This project is an AI-based dental X-ray analysis system that detects:
+🦷 Caries
 🦷 Deep Caries
 
 It uses a Roboflow YOLOv8 model (Dentex v2) and a fully custom-built Flask backend + HTML/JS front-end interface.
@@ -33,84 +30,46 @@ This project demonstrates computer vision, image processing, UI/UX, backend inte
 Uses Roboflow Dentex v2 model
 
 Detects only:
-
 caries
-
 deep caries
-
 Confidence threshold-based severity classification
-
 JSON output for bounding boxes, confidence, labels
 
 🖥 2. Beautiful Web Interface
 
 Video background
-
 Neon-themed medical UI
-
 Animated transitions
-
 Clear upload → analyze → results workflow
 
 🖼 3. Results Summary
 
 Total cavities
-
 Count by severity
-
 Average confidence
-
 Highest confidence
-
 Risk level (Low / Moderate / High)
 
 🔎 4. Cavity Viewer (HD)
 
 Each cavity can be viewed individually:
-
 High-resolution crop
-
 Automatic upscaling
-
 Sharpening using convolution kernel
-
 Improved visibility for analysis
-
 Navigation between cavities
-
 Bounding box overlay
-
-💾 5. Local Storage Persistence
-
-When navigating between pages:
-
-Image
-
-Detected cavities
-
-Selected cavity
-
-are preserved until user resets.
 
 🧰 Tech Stack
 Backend
-
 Python
-
 Flask
-
 Roboflow Inference API
-
 Pillow
-
 Frontend
-
 HTML5
-
 CSS3 (Neon UI)
-
 JavaScript (custom logic, canvas drawing)
-
 LocalStorage state management
 
 Canvas sharpening + resizing
@@ -137,30 +96,16 @@ Cavity_Detection_Xray_CPS843/
 1️⃣ User uploads dental X-ray
 2️⃣ Flask sends image → Roboflow API
 ROBOFLOW_URL = f"https://detect.roboflow.com/{PROJECT_ID}/{MODEL_VERSION}?api_key={ROBOFLOW_API_KEY}"
-
 3️⃣ Model returns:
-
 Bounding boxes
-
 Class (caries / deep caries)
-
 Confidence
-
 4️⃣ We apply severity rules:
 if prob >= 0.75: severity = "High"
 elif prob >= 0.50: severity = "Medium"
 else: severity = "Low"
-
 5️⃣ Frontend draws boxes + labels on canvas
 6️⃣ Cavity Viewer extracts and sharpens the crop
-
-Using:
-
-3× upscaling
-
-Sharpening convolution kernel
-
-Contrast boost
 
 🛠 Local Setup
 1. Clone Repo
@@ -204,16 +149,12 @@ App runs at:
 
 This project was developed as part of CPS843 – Introduction to Computer Vision at TMU.
 It demonstrates:
-
 Image pre-processing
-
 Bounding box visualization
-
 AI model integration
-
 Convolution-based sharpening
-
 Web UI development
+
 📚 References
 
 This project builds upon publicly available research, datasets, and tools that contributed to the development of the cavity-detection system.
@@ -221,21 +162,21 @@ This project builds upon publicly available research, datasets, and tools that c
 1. Dentex Dataset (Roboflow Universe)
 
 The AI model used for detecting caries and deep caries is based on the publicly accessible Dentex dataset:
-👉 https://universe.roboflow.com/dentex/dentex-3xe7e
+https://universe.roboflow.com/dentex/dentex-3xe7e
 
 This dataset provides annotated dental X-ray images used for training and evaluation of object detection models on dental cavities.
 
 2. DentalXrayAI – YOLOv8 Training Reference
 
 The cavity detection workflow, training pipeline structure, preprocessing ideas, and model integration approaches were partially inspired by:
-👉 https://github.com/NoahOksuz/DentalXrayAI
+https://github.com/NoahOksuz/DentalXrayAI
 
 This repository explores YOLO-based cavity detection on dental X-rays and contributed to architectural inspiration for this project.
 
 3. Roboflow Inference API
 
 The real-time detection in this project uses the Roboflow Hosted Inference API:
-👉 https://roboflow.com
+https://roboflow.com
 
 This API provides YOLOv8 inference endpoints that deliver bounding boxes, class predictions, and confidence scores.
 

@@ -158,29 +158,43 @@ Web UI development
 
 📚 References
 
-This project builds upon publicly available research, datasets, and tools that contributed to the development of the cavity-detection system.
+This project uses public sources that shaped the model flow, the image work, and the viewer. The list below shows the main items that helped guide the work.
 
 1. Dentex Dataset (Roboflow Universe)
-
-The AI model used for detecting caries and deep caries is based on the publicly accessible Dentex dataset:
+The model in this project uses the Dentex dataset for caries and deep caries. The dataset provides labelled dental X-rays with two classes. These samples helped us see how decay appears in real cases.
 https://universe.roboflow.com/dentex/dentex-3xe7e
 
-This dataset provides annotated dental X-ray images used for training and evaluation of object detection models on dental cavities.
-
-2. DentalXrayAI – YOLOv8 Training Reference
-
-The cavity detection workflow, training pipeline structure, preprocessing ideas, and model integration approaches were partially inspired by:
+2. DentalXrayAI (GitHub)
+This open-source project showed how dental X-rays can pass through a YOLO model. We used this as a guide when planning the folder layout and the flow from upload to detection.
 https://github.com/NoahOksuz/DentalXrayAI
 
-This repository explores YOLO-based cavity detection on dental X-rays and contributed to architectural inspiration for this project.
-
-3. Roboflow Inference API
-
-The real-time detection in this project uses the Roboflow Hosted Inference API:
+3. Roboflow Hosted Inference API
+The tool sends each uploaded X-ray to the Roboflow API. The API returns boxes, class names, and confidence values. This keeps the model work simple and steady on a local setup.
 https://roboflow.com
 
-This API provides YOLOv8 inference endpoints that deliver bounding boxes, class predictions, and confidence scores.
+4. YOLOv8 (Ultralytics)
+YOLOv8 is the base model used by the API. It supports fast inference and clean output. We reviewed the public notes on the model to understand how the boxes and scores are produced.
+https://github.com/ultralytics/ultralytics
 
-4. TMU – CPS843 Course Material
+5. YOLO: You Only Look Once (Redmon et al.)
+This paper introduced the first YOLO model. It explains how one network can predict boxes and class names at the same time. We used this to understand the idea behind our own detection step.
+https://arxiv.org/abs/1506.02640
 
-General computer vision concepts used here (image processing, canvas rendering, convolution sharpening) are based on the topics and principles taught in CPS843 at Toronto Metropolitan University.
+6. YOLOv4 (Bochkovskiy et al.)
+This version of YOLO shows ways to improve speed and accuracy. It helped us understand why modern models like YOLOv8 work well on clean datasets such as Dentex.
+https://arxiv.org/abs/2004.10934
+
+7. CVPR Open Access (CVF)
+We reviewed open-access pages from CVPR to see how object detection is tested across other tasks. This helped us place our own detection work in a simple context.
+http://openaccess.thecvf.com
+
+8. arXiv Computer Vision Section
+We checked the Computer Vision section on arXiv to review papers related to object detection and image tasks. This step helped us see how bounding boxes and filters are used in other projects.
+https://arxiv.org/list/cs.CV/recent
+
+9. CPS843 Course Material (TMU)
+The viewer uses ideas from CPS843 such as spatial filters, cropping, and sharpening. These concepts shaped the steps used to build the cavity viewer.
+
+10. Project Repository
+The full source code for this tool is available here:
+https://github.com/singlasatwik16-collab/Cavity_Detection_Xray_CPS843
